@@ -4,7 +4,7 @@ import pandas as pd
 from os import path
 from find_mp import list_mp
 
-# backend functions
+# backend stuff
 def update_pair(pair, new_seg):
     # update minimal pair. used when user selects a segment from the inventory
     if '(' in pair:  # first selecting a segment
@@ -14,13 +14,13 @@ def update_pair(pair, new_seg):
     pair = segs[-1], new_seg
     return ', '.join(pair)
 
-
-app = Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
-
 inventory_path = path.join('assets', 'kor_c.csv')
 
 df = pd.read_csv(inventory_path)
 
+# app
+app = Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
+server = app.server
 
 # components
 table = dash_table.DataTable(
@@ -172,8 +172,6 @@ def select_segements(cv_value, undo_click, cell, pair, data):
                 pair_msg = update_pair(pair, selected)
 
     return table_col, table_data, {'textAlign': 'left'}, True, pair_msg
-
-
 
 
 if __name__ == "__main__":
