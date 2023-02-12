@@ -1,9 +1,9 @@
 # Minimal_pairs_in_Korean
 A dash app that finds minimal pairs in Korean
 
-(Hey, why did nobody already create this app already?)
+(Hey, why did nobody already create this app?)
 
-Here is the app! [link](https://minimal-pairs-kor.herokuapp.com/)
+Use this link! [link](https://minimal-pairs-kor.herokuapp.com/)
 
 # How to use it?
 Step 1: Select two segments on the inventory chart.
