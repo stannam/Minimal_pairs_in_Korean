@@ -19,13 +19,13 @@ inventory_path = path.join('assets', 'kor_c.csv')
 df = pd.read_csv(inventory_path)
 
 # app
-app = Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
+app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
 server = app.server
 
 # components
 table = dash_table.DataTable(
         columns=[{"name": i, "id": i} for i in df.columns],
-        style_cell={'textAlign': 'left'},
+        style_cell={'textAlign': 'left', 'font-family': 'serif', 'fontSize': 20},
         data=df.to_dict("records"),
         is_focused=True,
         id="seg_table"
@@ -48,12 +48,9 @@ res_table_header = [
     html.Thead(html.Tr([html.Th("Word1 (orth)"), html.Th("Word1 (IPA)"),
                         html.Th("Word2 (orth)"), html.Th("Word2 (IPA)")], id='res-header'))
 ]
-row1 = html.Tr([html.Td("Arthur"), html.Td("Arthur"), html.Td("Arthur"),html.Td("Dent")])
-row2 = html.Tr([html.Td("Ford"), html.Td("Arthur"), html.Td("Arthur"),html.Td("Prefect")])
-row3 = html.Tr([html.Td("Zaphod"), html.Td("Arthur"), html.Td("Arthur"),html.Td("Beeblebrox")])
-row4 = html.Tr([html.Td("Trillian"), html.Td("Arthur"), html.Td("Arthur"),html.Td("Astra")])
+row1 = html.Tr([html.Td("You"), html.Td("didn't"), html.Td("select"), html.Td("a pair")])
 
-res_table_body = [html.Tbody([row1, row2, row3, row4], id='res-table')]
+res_table_body = [html.Tbody([row1], id='res-table')]
 
 # layout
 app.layout = dbc.Accordion(
@@ -171,7 +168,7 @@ def select_segements(cv_value, undo_click, cell, pair, data):
             if selected is not None and len(selected) < 4:
                 pair_msg = update_pair(pair, selected)
 
-    return table_col, table_data, {'textAlign': 'left'}, True, pair_msg
+    return table_col, table_data, {'textAlign': 'left', 'font-family': 'san-serif', 'fontSize': 20}, True, pair_msg
 
 
 if __name__ == "__main__":
