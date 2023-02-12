@@ -1,0 +1,11 @@
+ ,bilabial,alveolar,alveolo-palatal,velar,glottal
+lax plosive,p,t,,k,
+aspirated plosive,pʰ,tʰ,,kʰ,
+tense plosive,p*,t*,,k*,
+aspirated fricative,,sʰ,,,h
+tense fricative,,s*,,,
+lax affricate,,,tɕ,,
+aspirated affricate,,,tɕʰ,,
+tense affricate,,,tɕ*,,
+nasal,m,n,,ŋ,
+lateral approximant,,l,,,
