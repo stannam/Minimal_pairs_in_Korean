@@ -57,7 +57,7 @@ app.layout = dbc.Accordion(
 [
     dbc.AccordionItem(
         [
-            html.H3("Select a pair from either consonant or vowel (cross-selecting unavailable)."),
+            html.H3("Select a pair from either consonants or vowels (cross-selecting unavailable)."),
             html.Br(),
             CV_button_group,
             table,
