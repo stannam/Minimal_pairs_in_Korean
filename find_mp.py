@@ -2,7 +2,7 @@ from os import path
 import pandas as pd
 
 CORPUS = pd.read_csv(path.join('assets', 'kor_raw.csv'))
-# 상대빈도 0.005 이상
+# 절대빈도 20 이상, 단 고유명사는 1000 이상
 # 포함된 품사: 부사 (M), 독립언(IC), 명사(N), 대명사(NP)
 
 def filter_corpus(pair, filters, corpus=CORPUS):

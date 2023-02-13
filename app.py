@@ -57,19 +57,29 @@ app.layout = dbc.Accordion(
 [
     dbc.AccordionItem(
         [
+            html.H3("Select a pair from either consonant or vowel (cross-selecting unavailable)."),
+            html.Br(),
             CV_button_group,
             table,
             dbc.Button('Undo selection', id="undo"),
-            html.Div(html.H3([html.Br(), 'You selected:', selected_pair]))
+            html.Div([html.H4([html.Br(), 'You selected:', selected_pair])])
         ],
         title="Step 1: Select two segments",
 
     ),
     dbc.AccordionItem(
         [
-            html.Div([html.P("Todo: Parameter setting for frequency, part of speech, word length, etc."),
-                     html.P("But for now, click the button below to find minimal pairs in the whole corpus. "
-                            "The corpus contains nouns, pronouns, adverbs, interjections and adverbs with the relative frequency of 0.005.")]),
+            html.Div([
+                html.H4("Minimum frequency"),
+                html.P("(Consider only words that occur more than this number out of 16m token. Default=200)"),
+                dcc.Slider(0, 100000, value=200,
+                           id='freq-slider'),
+                html.Br(),
+                html.H4("Part of speech"),
+                html.P("Todo: A pos filter is not implemented yet!",
+                       style={"color": "red"}),
+                html.P("For now, click the button below to find minimal pairs in the whole corpus. "
+                        "The corpus contains nouns, pronouns, adverbs, interjections and adverbs with the frequency of 20.")]),
             dbc.Button("Compute minimal pairs!", color="danger", id='compute')
 
         ],
@@ -77,9 +87,8 @@ app.layout = dbc.Accordion(
     ),
     dbc.AccordionItem(
         [
-            html.Div(html.H3("You didn't select a pair yet.",id='res-segpair')),
-            html.Div(dbc.Table(res_table_header + res_table_body), id='res-div')
-
+            dbc.Spinner(html.Div([html.Div(html.H3("You didn't select a pair yet.",id='res-segpair')),
+                      html.Div(dbc.Table(res_table_header + res_table_body), id='res-div')]))
         ],
         title="Step 3: Find minimal pairs",
     )
@@ -92,11 +101,12 @@ app.layout = dbc.Accordion(
     Output("res-div", "children"),
     ], [
     Input("pair_selected", "children"),
+    Input("freq-slider", "value"),
     Input("compute", "n_clicks")
     ],
     prevent_initial_call=True
 )
-def compute_minimalpair(pair, compute_btn):
+def compute_minimalpair(pair, freq_filter, compute_btn):
     triggered_id = ctx.triggered_id
     split_pair = pair.split(',')
     split_pair = [sp.strip() for sp in split_pair]
@@ -106,7 +116,7 @@ def compute_minimalpair(pair, compute_btn):
     if '(' in pair or len(split_pair) < 2:
         return no_update
 
-    minimal_pair_lists = list_mp(pair, filters={'freq': 1}) #TODO, update to implement filters
+    minimal_pair_lists = list_mp(pair, filters={'freq': freq_filter}) #TODO, update to implement filters
 
     pair_selected_msg = f"Minimal pairs by [{split_pair[0]}] and [{split_pair[1]}]"
 
