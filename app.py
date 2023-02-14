@@ -2,17 +2,7 @@ from dash import Dash, dcc, Output, Input, State, dash_table, html, ctx, no_upda
 import dash_bootstrap_components as dbc
 import pandas as pd
 from os import path
-from find_mp import list_mp
-
-# backend stuff
-def update_pair(pair, new_seg):
-    # update minimal pair. used when user selects a segment from the inventory
-    if '(' in pair:  # first selecting a segment
-        return new_seg
-    segs = pair.split(',')
-    segs = [s.strip() for s in segs]
-    pair = segs[-1], new_seg
-    return ', '.join(pair)
+from worker import list_mp, update_pair, clean_seg_pair
 
 inventory_path = path.join('assets', 'kor_c.csv')
 
@@ -20,6 +10,7 @@ df = pd.read_csv(inventory_path)
 
 # app
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
+app.title = 'Minimal Pairs in Korean'
 server = app.server
 
 # components
@@ -68,11 +59,15 @@ app.layout = dbc.Accordion(
 
     ),
     dbc.AccordionItem(
+
         [
             html.Div([
                 html.H4("Minimum frequency"),
-                html.P("(Consider only words that occur more than this number out of 16m token. Default=200)"),
-                dcc.Slider(0, 100000, value=200,
+                html.P("(Consider only words that occur more than 100 times out of 16m token. Default=100)",
+                       id="slider-msg"),
+                dcc.Slider(0, 5, 0.01,
+                           marks={i: f'{10 ** i}' for i in range(6)}, value=2,
+                           included=False,
                            id='freq-slider'),
                 html.Br(),
                 html.H4("Part of speech"),
@@ -87,8 +82,29 @@ app.layout = dbc.Accordion(
     ),
     dbc.AccordionItem(
         [
-            dbc.Spinner(html.Div([html.Div(html.H3("You didn't select a pair yet.",id='res-segpair')),
-                      html.Div(dbc.Table(res_table_header + res_table_body), id='res-div')]))
+            dbc.Spinner(
+                html.Div([
+                    dbc.Alert(
+                        "The 'download' function has not been implemented yet. :( Sorry about that!",
+                        id="alert",
+                        dismissable=True,
+                        fade=True,
+                        is_open=False,
+                        color="danger",
+                    ),
+                    html.Div(html.H3("You didn't select a pair yet.",id='res-segpair')),
+                    dbc.ButtonGroup([
+                        dbc.Button('Download as .csv',
+                                   disabled=True,
+                                   id="download-btn",),
+                        dbc.Button('Start over',
+                                   href='.',
+                                   external_link=True),
+                    ]),
+                    html.Div(dbc.Table(res_table_header + res_table_body),
+                             id='res-div',
+                             style={"maxHeight": "70vh", "overflow": "scroll"})])
+            )
         ],
         title="Step 3: Find minimal pairs",
     )
@@ -96,9 +112,11 @@ app.layout = dbc.Accordion(
 
 
 # Callbacks
+# 1. the main function: compute minimal pair
 @app.callback([
     Output("res-segpair", "children"),
     Output("res-div", "children"),
+    Output("download-btn", "disabled"),
     ], [
     Input("pair_selected", "children"),
     Input("freq-slider", "value"),
@@ -107,18 +125,23 @@ app.layout = dbc.Accordion(
     prevent_initial_call=True
 )
 def compute_minimalpair(pair, freq_filter, compute_btn):
+    # this function returns minimal pairs as a table and also count the number of minimal pairs
     triggered_id = ctx.triggered_id
-    split_pair = pair.split(',')
-    split_pair = [sp.strip() for sp in split_pair]
+    split_pair = clean_seg_pair(pair)
 
     if triggered_id != 'compute':
         return no_update
     if '(' in pair or len(split_pair) < 2:
         return no_update
 
-    minimal_pair_lists = list_mp(pair, filters={'freq': freq_filter}) #TODO, update to implement filters
+    minimal_pair_lists = list_mp(pair,
+                                 filters={
+                                     # the actual frequency value should be 10 to the power of slider frequency
+                                     'freq': 10 ** freq_filter
+                                 })
+    mp_count = len(minimal_pair_lists)
 
-    pair_selected_msg = f"Minimal pairs by [{split_pair[0]}] and [{split_pair[1]}]"
+    pair_selected_msg = f"Minimal pairs by [{split_pair[0]}] and [{split_pair[1]}] (N = {mp_count})"
 
     res_table_header = [
         html.Thead(
@@ -130,9 +153,19 @@ def compute_minimalpair(pair, freq_filter, compute_btn):
         output_rows.append(html.Tr([html.Td(i) for i in mp_row]))
 
     res_table_body = [html.Tbody(output_rows)]
-    return pair_selected_msg, [dbc.Table(res_table_header + res_table_body)]
+
+    result_table = [dbc.Table(res_table_header + res_table_body)]
+
+    disable_download_btn_bool = False
+    if mp_count < 1:
+        disable_download_btn_bool = True
+        pair_selected_msg = f"No minimal pairs by [{split_pair[0]}] and [{split_pair[1]}].  " \
+                            f"Please try different parameter settings."
+
+    return pair_selected_msg, result_table, disable_download_btn_bool
 
 
+# 2. select segment pair
 @app.callback([
     Output("seg_table", "columns"),
     Output("seg_table", "data"),
@@ -148,7 +181,7 @@ def compute_minimalpair(pair, freq_filter, compute_btn):
     ],
     prevent_initial_call=True
 )
-def select_segements(cv_value, undo_click, cell, pair, data):
+def select_segments(cv_value, undo_click, cell, pair, data):
     # select a segment pair, including switching consonant/vowel chart, etc.
     triggered_id = ctx.triggered_id
     pair_msg = pair
@@ -180,6 +213,28 @@ def select_segements(cv_value, undo_click, cell, pair, data):
 
     return table_col, table_data, {'textAlign': 'left', 'font-family': 'san-serif', 'fontSize': 20}, True, pair_msg
 
+
+# 3. slider update
+@app.callback([
+    Output("slider-msg", "children"),
+    Input("freq-slider", "value"),
+    ],
+    prevent_initial_call=True
+)
+def update_slider_msg(slider_value):
+    converted_freq = 10 ** slider_value
+    return [f'(Consider only words that occur more than {converted_freq:.2f} times out of 16m token '
+            f'(or, {converted_freq * 100 / 16568543:.2f}%). Default=100)']
+
+
+# 4. download button
+@app.callback(
+    Output("alert", "is_open"),
+    Input("download-btn", "n_clicks"),
+)
+def download_btn(n):
+    if n:
+        return True
 
 if __name__ == "__main__":
     app.run_server(debug=True)

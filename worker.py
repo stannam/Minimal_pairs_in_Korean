@@ -5,12 +5,31 @@ CORPUS = pd.read_csv(path.join('assets', 'kor_raw.csv'))
 # 절대빈도 20 이상, 단 고유명사는 1000 이상
 # 포함된 품사: 부사 (M), 독립언(IC), 명사(N), 대명사(NP)
 
+
+def clean_seg_pair(pair):
+    # returns a list of clean segments. For example, str: "(p, t)" to list: ["p","t"]
+    segs = pair.split(',')
+    return [s.strip() for s in segs]
+
+
+def update_pair(pair, new_seg):
+    # update minimal pair. used when user selects a segment from the inventory
+    if '(' in pair:  # first selecting a segment
+        return new_seg
+    segs = clean_seg_pair(pair)
+
+    if new_seg in segs:
+        return pair
+
+    pair = segs[-1], new_seg
+    return ', '.join(pair)
+
+
 def filter_corpus(pair, filters, corpus=CORPUS):
     # filter_pos = filters['pos']
     filter_freq = filters['freq']
 
-    pair = pair.split(',')
-    pair = [p.strip() for p in pair]
+    pair = clean_seg_pair(pair)
     for_reg = f'[{"".join(pair)}]'
 
     to_analyze = corpus[corpus['ipa'].str.contains(for_reg)]
@@ -36,8 +55,7 @@ def neutralize(corpus, seg):
 
 def list_mp(pair, filters, corpus=CORPUS):
     corpus = filter_corpus(pair=pair, filters=filters)
-    pair = pair.split(',')
-    pair = [p.strip() for p in pair]
+    pair = clean_seg_pair(pair)
 
     result = list()
 
@@ -50,6 +68,6 @@ def list_mp(pair, filters, corpus=CORPUS):
 
     return result
 
+
 if __name__ == "__main__":
-    fil = {'freq': 1}
-    list_mp(pair='p, k', filters=fil)
+    pass
