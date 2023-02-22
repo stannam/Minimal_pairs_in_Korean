@@ -1,12 +1,11 @@
-from dash import Dash, dcc, Output, Input, State, dash_table, html, ctx, no_update
+from dash import Dash, Output, Input, State, html, ctx, no_update
 import dash_bootstrap_components as dbc
 import pandas as pd
 from os import path
-from worker import list_mp, update_pair, clean_seg_pair
+from worker import list_mp, update_pair, clean_seg_pair, batch_btn_operation
+import layout
 
-inventory_path = path.join('assets', 'kor_c.csv')
 
-df = pd.read_csv(inventory_path)
 
 # app
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
@@ -14,26 +13,6 @@ app.title = 'Minimal Pairs in Korean'
 server = app.server
 
 # components
-table = dash_table.DataTable(
-        columns=[{"name": i, "id": i} for i in df.columns],
-        style_cell={'textAlign': 'left', 'font-family': 'serif', 'fontSize': 20},
-        data=df.to_dict("records"),
-        is_focused=True,
-        id="seg_table"
-    )
-CV_button_group = dbc.RadioItems(
-    className='btn-group',
-    inputClassName="btn-check",
-    labelClassName="btn btn-outline-primary",
-    options=[
-        {"label": "Consonants", "value": 'c'},
-        {"label": "Vowels", "value": 'v'},
-    ],
-    value='c',
-    id='cv_btn',
-)
-selected_pair = html.P(children="(You haven't selected a pair)",
-                       id="pair_selected")
 
 res_table_header = [
     html.Thead(html.Tr([html.Th("Word1 (orth)"), html.Th("Word1 (IPA)"),
@@ -47,37 +26,12 @@ res_table_body = [html.Tbody([row1], id='res-table')]
 app.layout = dbc.Accordion(
 [
     dbc.AccordionItem(
-        [
-            html.H3("Select a pair from either consonants or vowels (cross-selecting unavailable)."),
-            html.Br(),
-            CV_button_group,
-            table,
-            dbc.Button('Undo selection', id="undo"),
-            html.Div([html.H4([html.Br(), 'You selected:', selected_pair])])
-        ],
+        layout.step_one,
         title="Step 1: Select two segments",
 
     ),
     dbc.AccordionItem(
-
-        [
-            html.Div([
-                html.H4("Minimum frequency"),
-                html.P("(Consider only words that occur more than 100 times out of 16m token. Default=100)",
-                       id="slider-msg"),
-                dcc.Slider(0, 5, 0.01,
-                           marks={i: f'{10 ** i}' for i in range(6)}, value=2,
-                           included=False,
-                           id='freq-slider'),
-                html.Br(),
-                html.H4("Part of speech"),
-                html.P("Todo: A pos filter is not implemented yet!",
-                       style={"color": "red"}),
-                html.P("For now, click the button below to find minimal pairs in the whole corpus. "
-                        "The corpus contains nouns, pronouns, adverbs, interjections and adverbs with the frequency of 20.")]),
-            dbc.Button("Compute minimal pairs!", color="danger", id='compute')
-
-        ],
+        layout.step_two,
         title="Step 2: Parameters + start finding",
     ),
     dbc.AccordionItem(
@@ -118,16 +72,21 @@ app.layout = dbc.Accordion(
     Output("res-div", "children"),
     Output("download-btn", "disabled"),
     ], [
-    Input("pair_selected", "children"),
-    Input("freq-slider", "value"),
     Input("compute", "n_clicks")
+    ], [
+    State("pair_selected", "children"),
+    State("freq-slider", "value"),
+    State("input-nouns","value"),
+    State("input-adverbs","value"),
+    State("input-etymology","value"),
     ],
     prevent_initial_call=True
 )
-def compute_minimalpair(pair, freq_filter, compute_btn):
+def compute_minimalpair(compute_btn, pair, freq_filter, noun_filter, adv_filter, ety_filter):
     # this function returns minimal pairs as a table and also count the number of minimal pairs
     triggered_id = ctx.triggered_id
     split_pair = clean_seg_pair(pair)
+
 
     if triggered_id != 'compute':
         return no_update
@@ -137,7 +96,9 @@ def compute_minimalpair(pair, freq_filter, compute_btn):
     minimal_pair_lists = list_mp(pair,
                                  filters={
                                      # the actual frequency value should be 10 to the power of slider frequency
-                                     'freq': 10 ** freq_filter
+                                     'freq': 10 ** freq_filter,
+                                     'pos': noun_filter + adv_filter,
+                                     'etymology': ety_filter
                                  })
     mp_count = len(minimal_pair_lists)
 
@@ -235,6 +196,54 @@ def update_slider_msg(slider_value):
 def download_btn(n):
     if n:
         return True
+
+
+# 5. parameter switch noun
+@app.callback([
+    Output("input-nouns", "value"),
+    Output("input-nouns", "options"),
+    Input('switch-noun', 'value'),
+    State('input-nouns', 'options')
+    ],
+    prevent_initial_call=True
+)
+def noun_switch_fn(switch, value_list):
+    disabled = True
+    if switch:  # if noun switch is turned on
+        disabled = False
+    return batch_btn_operation(value_list, disabled)
+
+
+# 6. parameter switch adv
+@app.callback([
+    Output("input-adverbs", "value"),
+    Output("input-adverbs", "options"),
+    Input('switch-adverb', 'value'),
+    State('input-adverbs', 'options')
+    ],
+    prevent_initial_call=True
+)
+def adv_switch_fn(switch, value_list):
+    disabled = True
+    if switch:  # if noun switch is turned on
+        disabled = False
+    return batch_btn_operation(value_list, disabled)
+
+
+# 7. parameter switch etymology
+@app.callback([
+    Output("input-etymology", "value"),
+    Output("input-etymology", "options"),
+    Input('switch-etymology', 'value'),
+    State('input-etymology', 'options')
+    ],
+    prevent_initial_call=True
+)
+def ety_switch_fn(switch, value_list):
+    disabled = True
+    if switch:  # if noun switch is turned on
+        disabled = False
+    return batch_btn_operation(value_list, disabled)
 
 if __name__ == "__main__":
     app.run_server(debug=True)

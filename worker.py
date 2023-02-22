@@ -1,10 +1,8 @@
 from os import path
 import pandas as pd
 
-CORPUS = pd.read_csv(path.join('assets', 'kor_raw.csv'))
-# 절대빈도 20 이상, 단 고유명사는 1000 이상
-# 포함된 품사: 부사 (M), 독립언(IC), 명사(N), 대명사(NP)
-
+CORPUS = pd.read_csv(path.join('assets', 'kor_raw2.csv'))
+# 강범모 김흥규에서 표준국어대사전 발음형으로 보정한 db
 
 def clean_seg_pair(pair):
     # returns a list of clean segments. For example, str: "(p, t)" to list: ["p","t"]
@@ -26,14 +24,21 @@ def update_pair(pair, new_seg):
 
 
 def filter_corpus(pair, filters, corpus=CORPUS):
-    # filter_pos = filters['pos']
+    filter_pos = filters['pos']
     filter_freq = filters['freq']
+    filter_etymology = filters['etymology']
 
     pair = clean_seg_pair(pair)
     for_reg = f'[{"".join(pair)}]'
 
+    to_analyze = corpus[corpus['ipa'].str.contains(for_reg)]  # only consider words that contain target segs
+    to_analyze = to_analyze[to_analyze['abs_freq'] >= filter_freq]  # filter by frequency
+
+    # filter by etymology (optional)
     to_analyze = corpus[corpus['ipa'].str.contains(for_reg)]
-    to_analyze = to_analyze[to_analyze['abs_freq'] >= filter_freq]
+
+
+    # remove duplicates
     to_analyze = to_analyze.drop_duplicates(subset="ipa")
 
     return to_analyze
@@ -69,5 +74,27 @@ def list_mp(pair, filters, corpus=CORPUS):
     return result
 
 
+def batch_btn_operation(btn_options, option_disabled):
+    pass
+    values = [option['value'] for option in btn_options]
+    for option in btn_options:
+        option['disabled'] = option_disabled
+    if option_disabled:
+        values = []
+    return values, btn_options
+
+
+
+
+
+
+
 if __name__ == "__main__":
+    batch_btn_operation([
+            {"label": "Common nouns (일반명사)", "value": 'NNG'},
+            {"label": "Proper nouns (고유명사)", "value": 'NNP'},
+            {"label": "Counting words (수사)", "value": 'NR'},
+            {"label": "Pronouns (대명사)", "value": 'NP'},
+            {"label": "Bound nouns (의존명사)", "value": 'NNB'},
+        ],True)
     pass
