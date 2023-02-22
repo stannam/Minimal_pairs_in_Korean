@@ -63,7 +63,7 @@ POS_selector = [dbc.Checklist(
 
     dbc.Checklist(
         options=[
-            {"label": "Conjunctions(접속부사)", "value": 'MAJ', "disabled": False},
+            {"label": "Conjunctions (접속부사)", "value": 'MAJ', "disabled": False},
             {"label": "Other adverbs (일반부사)", "value": 'MAG', "disabled": False},
             {"label": "Interjections (감탄사)", "value": 'IC', "disabled": False},
         ],

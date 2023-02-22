@@ -32,10 +32,16 @@ def filter_corpus(pair, filters, corpus=CORPUS):
     for_reg = f'[{"".join(pair)}]'
 
     to_analyze = corpus[corpus['ipa'].str.contains(for_reg)]  # only consider words that contain target segs
-    to_analyze = to_analyze[to_analyze['abs_freq'] >= filter_freq]  # filter by frequency
 
     # filter by etymology (optional)
-    to_analyze = corpus[corpus['ipa'].str.contains(for_reg)]
+    if len(filter_etymology) > 0:
+        to_analyze = to_analyze[to_analyze['etymology'].isin(filter_etymology)]
+
+    # filter by POS
+    to_analyze = to_analyze[to_analyze['POS'].isin(filter_pos)]
+
+    to_analyze = to_analyze[to_analyze['abs_freq'] >= filter_freq]  # filter by frequency
+
 
 
     # remove duplicates
