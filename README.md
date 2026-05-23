@@ -3,7 +3,7 @@ A dash app that finds minimal pairs in Korean
 
 (Hey, why did nobody already create this app?)
 
-Use this link! [link](https://minimal-pairs-kor.herokuapp.com/)
+Use this link! [link](https://minimalpairs.stanleynam.ca/)
 
 # How to use it?
 Step 1: Select two segments on the inventory chart.
